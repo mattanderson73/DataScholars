@@ -1,0 +1,84 @@
+---
+title: "Final Project"
+author: "Margaret"
+date: "2025-04-17"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+
+library(ggplot2)
+library(tidyverse)
+library(corrplot)
+```
+
+## Reading in Data
+
+```{r cars}
+students <- read.csv("ResearchInformation3.csv", stringsAsFactors = TRUE)
+
+# Extract the numerical part of the Semester data and set it as a factor. Otherwise it puts 10th, 11th, and 12th before 2nd on the graph. This might also help in our later analysis
+
+semester_numbers <- as.numeric(gsub("th|rd|nd", "", students$Semester))
+students$Semester <- semester_numbers
+students$Semester_factor <- as.factor(students$Semester)
+```
+
+## Describing data
+
+
+```{r pressure, echo=FALSE}
+# range of the response variable
+range_gpa = range(students$Overall); range_gpa
+# range of some other variables for curiosity
+HSC_range = range(students$HSC); HSC_range
+SSC_range = range(students$SSC); SSC_range
+
+students[352,]
+```
+
+```{r explore_graphs, echo=FALSE}
+only_cs <- students[students$Department == 'Computer Science and Engineering', ]
+only_cs <- only_cs[, colnames(only_cs)[colnames(only_cs) != 'Department']]
+
+# Department
+# ggplot(only_cs, aes(x = fct_rev(fct_infreq(Department)), fill = Department)) +
+#   geom_bar() +
+#   labs(title = "Department Counts", x = "Department", y = "Count") +
+#   theme_minimal() +
+#   theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+#   scale_fill_brewer(palette = "Paired")
+
+# Gender
+ggplot(only_cs, aes(x = fct_rev(fct_infreq(Gender)), fill = Gender)) +
+  geom_bar() +
+  labs(title = "Gender Counts", x = "Gender", y = "Count") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(hjust = 1)) +
+  scale_fill_manual(values = c("Male" = "#91BCFF", "Female" = "#ff91e6"))
+
+# Hometown
+ggplot(only_cs, aes(x = fct_rev(fct_infreq(Hometown)), fill = Hometown)) +
+  geom_bar() +
+  labs(title = "Hometown Counts", x = "Hometown", y = "Count") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(hjust = 1)) +
+  scale_fill_manual(values = c("City" = "#e86464", "Village" = "#64e869"))
+
+# Semester
+ggplot(only_cs, aes(x = Semester_factor, fill = Semester_factor)) +
+  geom_bar(show.legend = FALSE) +  # Hide legend
+  labs(title = "Semester Counts", x = "Semester", y = "Count") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(hjust = 1)) +  # Rotate labels
+  scale_fill_brewer(palette = "Paired") +
+  scale_x_discrete(breaks = unique(only_cs$Semester_factor))
+
+# Correlation Plot of Continious Variables.
+continious_cols <- c("HSC", "SSC", "Last")
+
+corrplot(cor(only_cs[, continious_cols]), method="color")
+```
+

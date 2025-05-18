@@ -1,0 +1,55 @@
+---
+title: "R Notebook"
+output:
+  html_document:
+    df_print: paged
+---
+
+
+```{r}
+students <- read.csv("ResearchInformation3.csv", stringsAsFactors = TRUE)
+
+# Fix semester numbers
+semester_numbers <- as.numeric(gsub("th|rd|nd", "", students$Semester))
+students$Semester <- semester_numbers
+
+knitr::kable(students[c(8,291,352), c('Last', 'Overall')], align = "ll")
+
+# Remove outliers
+students <- students[ -c(8, 291, 352), ]
+
+# Subset of cs students
+students <- students[students$Department == 'Computer Science and Engineering', ]
+students <- students[, colnames(students)[colnames(students) != 'Department']]
+
+# Model 1
+model1 = lm(Overall ~ Preparation + Attendance + Last, data = students)
+summary(model1)
+plot(model1$fitted.values, model1$residuals,
+     col = "lightblue",    # light blue points
+     xlab = "Fitted Values",
+     ylab = "Residuals",
+     main = "Residuals vs Fitted")
+abline(h = 0, col = "red", lwd = 2)
+
+qqnorm(model1$residuals,
+       col = "lightblue",
+       main = "Normal Q-Q Plot")
+qqline(model1$residuals, col = "red", lwd = 2)
+
+# Model 2
+model2 = lm(Overall ~ Gender + HSC + Computer + Preparation + Gaming + Attendance + Job + English, data = students)
+summary(model2)
+plot(model2$fitted.values, model2$residuals,
+     col = "lightblue",    # light blue points
+     xlab = "Fitted Values",
+     ylab = "Residuals",
+     main = "Residuals vs Fitted")
+abline(h = 0, col = "red", lwd = 2)
+
+qqnorm(model2$residuals,
+       col = "lightblue",
+       main = "Normal Q-Q Plot")
+qqline(model2$residuals, col = "red", lwd = 2)
+```
+

@@ -1,0 +1,138 @@
+---
+title: "R Notebook"
+output:
+  html_document:
+    df_print: paged
+editor_options:
+  chunk_output_type: inline
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+#setwd("C:/Users/mgsmi/Documents/Spring 2025/4214 - Regression/FinalProject")
+
+library(ggplot2)
+library(tidyverse)
+library(corrplot)
+```
+
+```{r}
+# data
+students <- read.csv("ResearchInformation3.csv", stringsAsFactors = TRUE)
+
+semester_numbers <- as.numeric(gsub("th|rd|nd", "", students$Semester))
+students$Semester <- semester_numbers
+
+# obtaining subset of cs students
+only_cs <- students[students$Department == 'Computer Science and Engineering', ]
+only_cs <- only_cs[, colnames(only_cs)[colnames(only_cs) != 'Department']]
+
+# deleting last GPA column
+no_last <- students[, colnames(only_cs)[colnames(only_cs) != 'Last']]
+
+```
+
+
+
+## Initial 2 Models - Including Last Semester's GPA
+
+```{r}
+mdl1_1 <- lm(Overall ~ Preparation + Attendance + Last, data = only_cs)
+summary(mdl1_1)
+
+mdl1_2 <- lm(Overall ~ Last, data = only_cs)
+summary(mdl1_2)
+```
+
+## Replacing Second Model - NOT Including Last Semester's GPA
+
+```{r}
+mdl2_1 <- lm(Overall ~ Gender + HSC + Computer + Preparation + 
+    Gaming + Attendance + Job + English + Extra + Semester, data = no_last)
+summary(mdl2_1)
+
+```
+
+
+## Finding the difference
+```{r}
+diff_df = only_cs
+diff_df["diff"] <- only_cs$Overall - only_cs$Last
+diff_df <- diff_df[, colnames(diff_df)[colnames(diff_df) != 'Overall']]
+diff_df <- diff_df[, colnames(diff_df)[colnames(diff_df) != 'Last']]
+
+```
+
+### Building models
+
+```{r}
+# Full Model
+full_mdl = lm(diff ~ ., data = diff_df)
+
+# Null Model (only the intercept)
+null_mdl = lm(diff ~ 1, data = diff_df)
+#n - dim(diff_df)[1]
+mdl_both_null_bic = step(null_mdl, direction = 'both', scope = formula(full_mdl), trace=FALSE)
+summary(mdl_both_null_bic)
+```
+
+### Taking out the "bad data"
+
+```{r}
+students <- students[ -c(8, 291, 352), ]
+no_out <- students[students$Department == 'Computer Science and Engineering', ]
+no_out <- no_out[, colnames(no_out)[colnames(no_out) != 'Department']]
+#no_out <- no_out[, colnames(no_out)[colnames(no_out) != 'Last']]
+```
+
+
+
+```{r}
+# Model that was found earlier
+#mdl1_1 <- lm(Overall ~ Preparation + Attendance + Last, data = no_out)
+#summary(mdl1_1)
+```
+
+### Rebuilding models
+
+```{r}
+library(car)
+# n for all models
+n <- dim(no_out)[1]
+# Full Model
+full_mdl = lm(Overall ~ ., data = no_out)
+
+# Null Model (only the intercept)
+null_mdl = lm(Overall ~ 1, data =  no_out)
+
+mdl_both_null_aic = step(null_mdl, direction = 'both', scope = formula(full_mdl), trace=FALSE)
+summary(mdl_both_null_aic)
+mdl_both_null_bic = step(null_mdl, direction = 'both', scope = formula(full_mdl), k = log(n), trace=FALSE)
+summary(mdl_both_null_bic)
+
+
+##### AIC - Backwards
+mdl_backward_aic = step(full_mdl, direction = 'backward')
+summary(mdl_backward_aic)
+#vif(mdl_backward_aic)
+
+##### BIC - Backwards
+mdl_backward_bic = step(full_mdl, direction = 'backward', k = log(n))
+summary(mdl_backward_bic)
+#vif(mdl_backward_bic)
+```
+### Exhaustive
+```{r}
+library(leaps)
+regfit.full = regsubsets(Overall ~ ., data = no_out, method = 'exhaustive', nbest = 2)
+regfit.full
+output = summary(regfit.full, all.best = TRUE)
+criterion_mat = cbind(output$rsq,output$adjr2,output$cp, output$bic)
+colnames(criterion_mat) = c('R2', 'AdjR2', 'Cp','BIC')
+results_mat = cbind(output$outmat, round(criterion_mat,3))
+results_mat
+```
+
+
+
+
+
